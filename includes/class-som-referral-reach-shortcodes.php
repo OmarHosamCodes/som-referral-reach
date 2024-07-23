@@ -23,22 +23,14 @@ class SOM_Referral_Reach_Shortcodes
 
         // Hook shortcodes
         $shortcodes = [
-            'som-referral-reach-main.php',
+            ['som-referral-reach-main.php', 'Main', 'srr_main_shortcode']
         ];
 
 
         try {
             foreach ($shortcodes as $shortcode) {
-                $required_file = plugin_dir_path(__FILE__) . '../view/shortcodes/' . $shortcode;
-                if (file_exists($required_file)) {
-                    require_once $required_file;
-                }
-                $shortcode_name = str_replace('.php', '', $shortcode);
-                $shortcode_name = str_replace('som-referral-reach-', '', $shortcode_name);
-                $shortcode_name = str_replace('-', '_', $shortcode_name);
-                $shortcode_name = 'SOM_Referral_Reach_' . ucwords($shortcode_name);
-
-                add_shortcode('som-referral-reach-' . $shortcode_name, [$shortcode_name, 'create']);
+                require_once plugin_dir_path(__FILE__) . '../view/shortcodes/' . $shortcode[0];
+                add_shortcode($shortcode[2], ['SOM_Referral_Reach_' . $shortcode[1], 'create']);
             }
         } catch (Exception $e) {
             error_log($e->getMessage());

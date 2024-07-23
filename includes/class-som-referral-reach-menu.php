@@ -1,35 +1,27 @@
 <?php
-
-/**
- * The admin-specific functionality of the plugin.
- *
- * @since 1.0.0
- *
- * @package SOM Referral Reach
- * @subpackage som-referral-reach/includes
- */
-
-// require som-refferal-reach/view/menu-ui.php
 class SOM_Referral_Reach_Menu
 {
-    /**
-     * Fired during plugin activation
-     *
-     * @since 1.0.0
-     */
 
-    public  function create_admin_menu()
+    public static function register()
     {
+        add_action('admin_menu', [self::class, 'add_admin_pages']);
+        add_action('admin_init', [self::class, 'register_settings']);
+    }
 
-        require_once plugin_dir_path(__FILE__) . '../view/shortcodes/som-referral-reach-main.php';
-        $main_ui = new SOM_Referral_Reach_Main();
-        add_menu_page(
-            'Referral Reach',
-            'Referral Reach',
-            'manage_options',
-            'som-referral-reach',
-            [$main_ui, 'create'],
-            'dashicons-share-alt'
-        );
+    public static function add_admin_pages()
+    {
+        add_menu_page('SOM Referral Reach', 'Referral Reach', 'manage_options', 'som_referral_reach', [self::class, 'admin_index'], 'dashicons-awards', 110);
+    }
+
+    public static function admin_index()
+    {
+        require_once plugin_dir_path(__FILE__) . '../view/pages/admin.php';
+    }
+
+    public static function register_settings()
+    {
+        register_setting('som_referral_reach_settings_group', 'referral_conditions');
     }
 }
+
+SOM_Referral_Reach_Menu::register();

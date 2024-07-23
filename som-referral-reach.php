@@ -93,8 +93,8 @@ class SOM_Referral_Reach
 
         // Include and initialize classes
         $this->include_and_initialize('class-som-referral-reach-menu.php', 'SOM_Referral_Reach_Menu', 'register');
-        $this->include_and_initialize('class-som-referral-reach-shortcodes.php', 'SOM_Referral_Reach_Shortcodes', 'init');
-        $this->include_and_initialize('class-som-referral-reach-logging.php', 'SOM_Referral_Reach_Logging', 'init');
+        // $this->include_and_initialize('class-som-referral-reach-shortcodes.php', 'SOM_Referral_Reach_Shortcodes', 'init');
+        // $this->include_and_initialize('class-som-referral-reach-logging.php', 'SOM_Referral_Reach_Logging', 'init');
 
         // Hook actions for reviews
         add_action('review_status_changed', [$this, 'handle_review_status_change'], 10, 2);

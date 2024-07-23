@@ -11,7 +11,6 @@ defined('ABSPATH') or die('Hey, you can\'t access this file!');
 class SOM_Referral_Reach
 {
 
-    private $conditions;
 
     public function __construct()
     {
@@ -26,13 +25,16 @@ class SOM_Referral_Reach
     public function activate()
     {
         require_once plugin_dir_path(__FILE__) . 'includes/class-som-referral-reach-activate.php';
-        (new SOM_Referral_Reach_Activate())->activate();
+        $activate = new SOM_Referral_Reach_Activate();
+        $activate->activate();
     }
+
 
     public function deactivate()
     {
         require_once plugin_dir_path(__FILE__) . 'includes/class-som-referral-reach-deactivate.php';
-        (new SOM_Referral_Reach_Deactivate())->deactivate();
+        $deactivate = new SOM_Referral_Reach_Deactivate();
+        $deactivate->deactivate();
     }
 
     private function get_conditions()
@@ -44,7 +46,7 @@ class SOM_Referral_Reach
         return $conditions;
     }
 
-    public function handle_order_state_change($order_id, $new_status)
+    public function handle_order_state_change($order_id, $old_status, $new_status)
     {
         $order = wc_get_order($order_id);
         $user_id = $order->get_user_id();
@@ -61,18 +63,25 @@ class SOM_Referral_Reach
         }
     }
 
-    private function remove_points($user_id, $points, $context)
-    {
-        $previously_awarded = get_user_meta($user_id, 'points_awarded', true);
-        if ($previously_awarded >= $points) {
-            SOM_Referral_Reach_Logging::log_points_transaction($user_id, -$points, $context);
-            update_user_meta($user_id, 'points_awarded', $previously_awarded - $points);
-        }
-    }
-
     private function award_points($user_id, $points, $context)
     {
-        SOM_Referral_Reach_Logging::log_points_transaction($user_id, $points, $context);
+        $logger = new SOM_Referral_Reach_Logging();
+        $logger->log_points_transaction($user_id, $points, $context);
+
+        $current_points = get_user_meta($user_id, 'points_awarded', true);
+        $new_points = intval($current_points) + intval($points);
+        update_user_meta($user_id, 'points_awarded', $new_points);
+    }
+
+    private function remove_points($user_id, $points, $context)
+    {
+        $current_points = get_user_meta($user_id, 'points_awarded', true);
+        if ($current_points >= $points) {
+            $logger = new SOM_Referral_Reach_Logging();
+            $logger->log_points_transaction($user_id, -$points, $context);
+            $new_points = intval($current_points) - intval($points);
+            update_user_meta($user_id, 'points_awarded', $new_points);
+        }
     }
 
     public function handle_user_action($user_id, $action)
@@ -92,12 +101,9 @@ class SOM_Referral_Reach
         $css_url = plugin_dir_url(__FILE__) . 'view/css/admin.css';
         wp_enqueue_style('som-referral-reach-style', $css_url);
 
-        // Debugging
-        error_log('Enqueuing CSS from: ' . $css_url);
 
-        // Include and initialize classes
-        $this->include_and_initialize('class-som-referral-reach-menu.php', 'SOM_Referral_Reach_Menu', 'register');
-
+        require_once plugin_dir_path(__FILE__) . 'includes/class-som-referral-reach-menu.php';
+        SOM_Referral_Reach_Menu::register();
 
         //* For Feauture Implementation
         //* $this->include_and_initialize('class-som-referral-reach-shortcodes.php', 'SOM_Referral_Reach_Shortcodes', 'init');
@@ -105,10 +111,11 @@ class SOM_Referral_Reach
         // Hook actions for reviews
         add_action('review_status_changed', [$this, 'handle_review_status_change'], 10, 2);
 
-        // Hook actions for WooCommerce order status changes
-        $order_statuses = ['pending', 'processing', 'completed', 'cancelled', 'refunded'];
+        $order_statuses = [
+            'pending', 'processing', 'completed', 'cancelled', 'refunded'
+        ];
         foreach ($order_statuses as $status) {
-            add_action("woocommerce_order_status_$status", [$this, 'handle_order_state_change'], 10, 2);
+            add_action("woocommerce_order_status_{$status}", [$this, 'handle_order_state_change'], 10, 3);
         }
 
         // Hook actions for user actions

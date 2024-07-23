@@ -22,12 +22,12 @@ class SOM_Referral_Reach_Deactivate
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'referrals';
-        $log_table_name = $wpdb->prefix . 'points_log';
+        $log_table_name = $wpdb->prefix . 'som_points_log';
 
         // Drop the referrals table
         $wpdb->query("DROP TABLE IF EXISTS $table_name");
 
-        // Drop the points_log table
+        // Drop the som_points_log table
         $wpdb->query("DROP TABLE IF EXISTS $log_table_name");
 
         error_log('Plugin uninstall function executed without output');

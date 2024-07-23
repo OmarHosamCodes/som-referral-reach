@@ -54,18 +54,21 @@
         let addConditionButton = document.getElementById('add-condition');
         const triggers = {
             on_review: ['on_approved', 'on_disapproved', 'on_approved_and_purchased'],
-            on_order: ['pending', 'processing', 'completed', 'cancelled', 'refunded'], // Added WooCommerce order statuses
+            on_order: ['pending', 'processing', 'completed', 'cancelled', 'refunded'],
             on_user_actions: ['on_register', 'on_sign_in', 'on_birthday'],
             on_custom_action: []
         };
 
-        function populateTriggerOptions(selectElement, category) {
+        function populateTriggerOptions(selectElement, category, selectedValue) {
             selectElement.innerHTML = '';
             if (triggers[category]) {
                 triggers[category].forEach(trigger => {
                     let option = document.createElement('option');
                     option.value = trigger;
                     option.textContent = trigger.replace(/_/g, ' ');
+                    if (trigger === selectedValue) {
+                        option.selected = true;
+                    }
                     selectElement.appendChild(option);
                 });
             }
@@ -85,69 +88,73 @@
             } else {
                 triggerSelect.style.display = 'inline-block';
                 customActionField.style.display = 'none';
-                populateTriggerOptions(triggerSelect, category);
+                populateTriggerOptions(triggerSelect, category, triggerSelect.value);
             }
 
-            triggerRow.style.display = 'table-row';
-            pointsRow.style.display = 'table-row';
-            minPriceRow.style.display = 'none';
-            if (category === 'on_order') {
-                minPriceRow.style.display = 'table-row';
-            }
+            triggerRow.style.display = 'block';
+            pointsRow.style.display = 'block';
+            minPriceRow.style.display = category === 'on_order' ? 'block' : 'none';
         }
 
-        function addCondition(index) {
+
+
+        function addCondition(index, condition = {}) {
             let conditionItem = document.createElement('div');
             conditionItem.classList.add('condition-item');
             conditionItem.dataset.index = index;
             conditionItem.innerHTML = `
-            <h4>Condition ${index + 1}</h4>
-            <p>
-                <label>Category:</label>
-                <select class="condition-category" name="referral_conditions[${index}][category]">
-                    <option value="on_review">On Review</option>
-                    <option value="on_order">On Order</option>
-                    <option value="on_user_actions">On User Actions</option>
-                    <option value="on_custom_action">On Custom Action</option>
-                </select>
-            </p>
-            <p class="trigger-row">
-                <label>Trigger:</label>
-                <select class="condition-trigger" name="referral_conditions[${index}][trigger]" style="display: none;">
-                    <!-- Trigger options will be populated by JavaScript -->
-                </select>
-                <input type="text" class="custom-action-field" name="referral_conditions[${index}][custom_action]" style="display: none;" />
-            </p>
-            <p class="points-row">
-                <label>Points:</label>
-                <input type="number" name="referral_conditions[${index}][points]" />
-            </p>
-            <p class="min-price-row" style="display: none;">
-                <label>Minimum Price:</label>
-                <input type="number" name="referral_conditions[${index}][min_price]" />
-            </p>
-            <p class="custom-action-row" style="display: none;">
-                <label>Custom Action:</label>
-                <!-- Removed custom action text field here -->
-            </p>
-            <button type="button" class="remove-condition button">Remove Condition</button>
-            <hr>
-        `;
+        <h4>Condition ${index + 1}</h4>
+        <p>
+            <label>Category:</label>
+            <select class="condition-category" name="referral_conditions[${index}][category]">
+                <option value="on_review" ${condition.category === 'on_review' ? 'selected' : ''}>On Review</option>
+                <option value="on_order" ${condition.category === 'on_order' ? 'selected' : ''}>On Order</option>
+                <option value="on_user_actions" ${condition.category === 'on_user_actions' ? 'selected' : ''}>On User Actions</option>
+                <option value="on_custom_action" ${condition.category === 'on_custom_action' ? 'selected' : ''}>On Custom Action</option>
+            </select>
+        </p>
+        <p class="trigger-row">
+            <label>Trigger:</label>
+            <select class="condition-trigger" name="referral_conditions[${index}][trigger]">
+                <!-- Trigger options will be populated by JavaScript -->
+            </select>
+            <input type="text" class="custom-action-field" name="referral_conditions[${index}][custom_action]" value="${condition.custom_action || ''}" style="display: none;" />
+        </p>
+        <p class="points-row">
+            <label>Points:</label>
+            <input type="number" name="referral_conditions[${index}][points]" value="${condition.points || ''}" />
+        </p>
+        <p class="min-price-row" style="display: none;">
+            <label>Minimum Price:</label>
+            <input type="number" name="referral_conditions[${index}][min_price]" value="${condition.min_price || ''}" />
+        </p>
+        <button type="button" class="remove-condition button">Remove Condition</button>
+        <hr>
+    `;
             conditionsContainer.appendChild(conditionItem);
 
-            let removeConditionButtons = document.querySelectorAll('.remove-condition');
-            removeConditionButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    this.parentElement.remove();
-                    updateConditionIndices();
-                });
-            });
+            const categorySelect = conditionItem.querySelector('.condition-category');
+            categorySelect.value = condition.category || 'on_review';
 
-            conditionItem.querySelector('.condition-category').addEventListener('change', function() {
+            const triggerSelect = conditionItem.querySelector('.condition-trigger');
+            const customActionField = conditionItem.querySelector('.custom-action-field');
+
+            categorySelect.addEventListener('change', function() {
                 toggleFields(conditionItem);
             });
 
             toggleFields(conditionItem);
+
+            if (condition.category === 'on_custom_action') {
+                customActionField.value = condition.custom_action || '';
+            } else {
+                triggerSelect.value = condition.trigger || '';
+            }
+
+            conditionItem.querySelector('.remove-condition').addEventListener('click', function() {
+                conditionItem.remove();
+                updateConditionIndices();
+            });
         }
 
         function updateConditionIndices() {
@@ -168,11 +175,23 @@
             addCondition(index);
         });
 
-        document.querySelectorAll('.condition-item').forEach(item => {
-            item.querySelector('.condition-category').addEventListener('change', function() {
-                toggleFields(item);
+        // Initialize existing conditions
+        document.querySelectorAll('.condition-item').forEach((item, index) => {
+            const category = item.querySelector('.condition-category').value;
+            const trigger = item.querySelector('.condition-trigger').value;
+            const points = item.querySelector('.points-row input').value;
+            const minPrice = item.querySelector('.min-price-row input').value;
+            const customAction = item.querySelector('.custom-action-field').value;
+
+            addCondition(index, {
+                category: category,
+                trigger: trigger,
+                points: points,
+                min_price: minPrice,
+                custom_action: customAction
             });
-            toggleFields(item);
+
+            item.remove(); // Remove the original item
         });
     });
 </script>

@@ -88,13 +88,19 @@ class SOM_Referral_Reach
 
     public function hooks()
     {
-        // Enqueue styles
-        wp_enqueue_style('som_referral_reach_style', plugin_dir_url(__FILE__) . 'view/css/main.css');
+        // Enqueue the styles
+        $css_url = plugin_dir_url(__FILE__) . 'view/css/admin.css';
+        wp_enqueue_style('som-referral-reach-style', $css_url);
+
+        // Debugging
+        error_log('Enqueuing CSS from: ' . $css_url);
 
         // Include and initialize classes
         $this->include_and_initialize('class-som-referral-reach-menu.php', 'SOM_Referral_Reach_Menu', 'register');
-        // $this->include_and_initialize('class-som-referral-reach-shortcodes.php', 'SOM_Referral_Reach_Shortcodes', 'init');
-        // $this->include_and_initialize('class-som-referral-reach-logging.php', 'SOM_Referral_Reach_Logging', 'init');
+
+
+        //* For Feauture Implementation
+        //* $this->include_and_initialize('class-som-referral-reach-shortcodes.php', 'SOM_Referral_Reach_Shortcodes', 'init');
 
         // Hook actions for reviews
         add_action('review_status_changed', [$this, 'handle_review_status_change'], 10, 2);
